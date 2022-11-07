@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 4000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 app.use(cors());
@@ -37,6 +37,13 @@ app.get('/services', async(req, res) => {
     const cursor = serviceCollection.find({});
     const services = await cursor.limit(parseInt(query)).toArray();
     res.send(services);
+})
+
+app.get('/services/:id', async(req, res) => {   
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const service = await serviceCollection.findOne(query);
+    res.send(service);
 })
 
 //message stored on messageCollection
