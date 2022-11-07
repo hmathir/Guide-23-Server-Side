@@ -28,13 +28,26 @@ const dbConnect = async () => {
 }
 dbConnect();
 
+//Collections
 const serviceCollection = client.db('guide23').collection('services');
+const messagesCollection = client.db('guide23').collection('messages');
 
 app.get('/services', async(req, res) => {
     const query = req.query.limit || 0;
     const cursor = serviceCollection.find({});
     const services = await cursor.limit(parseInt(query)).toArray();
     res.send(services);
+})
+
+//message stored on messageCollection
+app.post('/send-messages', async(req, res) => {
+    const message = req.body;
+    const result = await messagesCollection.insertOne(message);
+    res.send({
+        message: 'Message Sent Successfully',
+        status: 200,
+        data: result
+    });
 })
 
 app.listen(port, () => {
