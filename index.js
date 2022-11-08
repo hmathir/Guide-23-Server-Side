@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 4000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+
 
 app.use(cors());
 app.use(express.json());
@@ -34,6 +36,32 @@ const messagesCollection = client.db('guide23').collection('messages');
 const reviewsCollection = client.db('guide23').collection('reviews');
 const blogsCollection = client.db('guide23').collection('blogs');
 
+//JWT
+app.post('/jwt', (req,res)=>{
+    const userData = req.body;
+    const token = jwt.sign(userData, process.env.ACCESS_TOKEN, {expiresIn: '1h'})
+    res.send({token});
+})
+
+
+const verifyJWT = (req,res,next) => {
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        return res.status(401).send({message: 'Unathorized Access'});
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, (error, decoded) => {
+        if(error){
+            return res.status(401).send({message: 'Unathorized Access'});
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
+
+
+//SERVICES
 app.get('/services', async (req, res) => {
     const query = req.query.limit || 0;
     const cursor = serviceCollection.find({}).sort({_id:-1});
@@ -54,26 +82,45 @@ app.get('/services/:id', async (req, res) => {
     res.send(service);
 })
 
-app.get('/reviews', async (req, res) => {
-    const serviceId = req.query.serviceId;
+//REVIEWS
+app.get('/reviews', verifyJWT, async (req, res) => {
+    const decoded = req.decoded;
+    if(decoded.email !== req.query.reviewerEmail){
+        return res.status(403).send({message: 'Access Denied'});
+    }
     const reviewerEmail = req.query.reviewerEmail;
-
-    let query;
-    if(serviceId){
-        query = {serviceId: serviceId};
-    }
-    else{
-        query = {reviewerEmail: reviewerEmail};
-    }
-
+    const query = {reviewerEmail: reviewerEmail};
     const reviews = await reviewsCollection.find(query).toArray();
     res.send(reviews);
 })
+
+app.get('/reviewsbyserviceid', async (req, res) => {
+    const serviceId = req.query.serviceId;
+    const query = {serviceId: serviceId};
+    const reviews = await reviewsCollection.find(query).toArray();
+    res.send(reviews);
+})
+
 
 app.post('/reviews', async (req, res) => {
     const reviewDetails = req.body;
     const result = await reviewsCollection.insertOne(reviewDetails);
     res.send(result);
+})
+
+app.patch('/reviews/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const reviewText = req.body;
+    const result = await reviewsCollection.updateOne(query, {$set: reviewText});
+    res.send(result);
+})
+
+app.get('/reviews/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const review = await reviewsCollection.findOne(query);
+    res.send(review);
 })
 
 app.delete('/reviews/:id', async (req, res) => {
@@ -93,6 +140,8 @@ app.post('/send-messages', async (req, res) => {
         data: result
     });
 })
+
+//BLOG
 
 app.get('/blogs', async (req, res) => {
     const query = {};
