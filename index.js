@@ -32,12 +32,19 @@ dbConnect();
 const serviceCollection = client.db('guide23').collection('services');
 const messagesCollection = client.db('guide23').collection('messages');
 const reviewsCollection = client.db('guide23').collection('reviews');
+const blogsCollection = client.db('guide23').collection('blogs');
 
 app.get('/services', async (req, res) => {
     const query = req.query.limit || 0;
-    const cursor = serviceCollection.find({});
+    const cursor = serviceCollection.find({}).sort({_id:-1});
     const services = await cursor.limit(parseInt(query)).toArray();
     res.send(services);
+})
+
+app.post('/services', async (req, res) => {
+    const service = req.body;
+    const result = await serviceCollection.insertOne(service);
+    res.send(result);
 })
 
 app.get('/services/:id', async (req, res) => {
@@ -69,6 +76,13 @@ app.post('/reviews', async (req, res) => {
     res.send(result);
 })
 
+app.delete('/reviews/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await reviewsCollection.deleteOne(query);
+    res.send(result);
+})
+
 //message stored on messageCollection
 app.post('/send-messages', async (req, res) => {
     const message = req.body;
@@ -78,6 +92,13 @@ app.post('/send-messages', async (req, res) => {
         status: 200,
         data: result
     });
+})
+
+app.get('/blogs', async (req, res) => {
+    const query = {};
+    const cursor = blogsCollection.find(query);
+    const blogs = await cursor.toArray();
+    res.send(blogs);
 })
 
 app.listen(port, () => {
