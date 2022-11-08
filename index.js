@@ -90,14 +90,14 @@ app.get('/reviews', verifyJWT, async (req, res) => {
     }
     const reviewerEmail = req.query.reviewerEmail;
     const query = {reviewerEmail: reviewerEmail};
-    const reviews = await reviewsCollection.find(query).toArray();
+    const reviews = await reviewsCollection.find(query).sort({_id:-1}).toArray();
     res.send(reviews);
 })
 
 app.get('/reviewsbyserviceid', async (req, res) => {
     const serviceId = req.query.serviceId;
     const query = {serviceId: serviceId};
-    const reviews = await reviewsCollection.find(query).toArray();
+    const reviews = await reviewsCollection.find(query).sort({_id:-1}).toArray();
     res.send(reviews);
 })
 
